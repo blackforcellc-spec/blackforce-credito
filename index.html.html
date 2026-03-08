@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackForce — Solicitud de Financiamiento</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--black:#0a0a0a;--dark:#111;--card:#161616;--border:#2a2a2a;--gold:#D97706;--gold2:#F59E0B;--elec:#22D3EE;--white:#F9FAFB;--muted:#6B7280;--error:#EF4444;--success:#10B981;--bg:#1c1c1c}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--black);color:var(--white);font-family:'DM Sans',Arial,sans-serif;min-height:100vh}
+header{background:linear-gradient(135deg,#0a0a0a 60%,#1a0f00);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;gap:1.5rem;height:72px}
+.logo-bolt{width:34px;height:34px;background:var(--gold);clip-path:polygon(60% 0%,100% 0%,40% 50%,80% 50%,0% 100%,20% 55%,-10% 55%);flex-shrink:0}
+.logo-text{font-family:'Bebas Neue',Arial,sans-serif;letter-spacing:.12em}
+.logo-text .t1{font-size:1.5rem;color:var(--white);display:block}
+.logo-text .t2{font-size:.72rem;color:var(--gold);letter-spacing:.25em}
+.header-right{margin-left:auto;font-size:.72rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase}
+
+/* PROGRESS */
+#progress{background:var(--dark);border-bottom:1px solid var(--border);padding:.9rem 2rem;position:sticky;top:0;z-index:20}
+.steps{display:flex;align-items:center;max-width:860px;margin:0 auto}
+.step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;cursor:pointer}
+.step:not(:last-child)::after{content:'';position:absolute;top:15px;left:50%;width:100%;height:2px;background:var(--border);z-index:-1}
+.step.done:not(:last-child)::after{background:var(--gold)}
+.dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--muted);font-family:'DM Mono',monospace;transition:all .3s}
+.step.active .dot{border-color:var(--gold);background:var(--gold);color:var(--black);font-weight:700}
+.step.done .dot{border-color:var(--gold);color:var(--gold)}
+.slabel{font-size:.58rem;color:var(--muted);margin-top:.3rem;text-transform:uppercase;letter-spacing:.08em;text-align:center}
+.step.active .slabel{color:var(--gold)}
+.step.done .slabel{color:var(--gold2)}
+
+/* LAYOUT */
+#app{max-width:860px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.panel{display:none}
+.panel.active{display:block}
+.ptitle{font-family:'Bebas Neue',Arial,sans-serif;font-size:1.9rem;letter-spacing:.08em;display:flex;align-items:center;gap:.7rem;margin-bottom:.3rem}
+.pnum{font-size:.9rem;color:var(--gold);font-family:'DM Mono',monospace;border:1px solid var(--gold);padding:.1rem .4rem;border-radius:4px}
+.psub{font-size:.83rem;color:var(--muted);margin-bottom:1.6rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.4rem;margin-bottom:1.2rem}
+.ctitle{font-size:.68rem;text-transform:uppercase;letter-spacing:.18em;color:var(--gold);font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.ctitle::before{content:'';display:inline-block;width:3px;height:13px;background:var(--gold);border-radius:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem}
+.s2{grid-column:span 2}.s3{grid-column:span 3}
+.f{display:flex;flex-direction:column;gap:.3rem}
+.f label{font-size:.7rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}
+.f label .r{color:var(--gold)}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--white);font-family:'DM Sans',Arial,sans-serif;font-size:.88rem;padding:.55rem .8rem;outline:none;width:100%;transition:border-color .2s}
+.f input:focus,.f select:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(217,119,6,.12)}
+.f select option{background:#1c1c1c}
+.px{position:relative}.px span{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--gold);font-family:'DM Mono',monospace;font-size:.82rem;pointer-events:none}
+.px input{padding-left:1.5rem}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem}
+.sch{display:none}
+.slb{display:flex;align-items:center;gap:.45rem;padding:.5rem .75rem;border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:.8rem;color:var(--muted);background:var(--bg);transition:all .2s}
+.slb::before{content:'';width:13px;height:13px;border-radius:3px;border:1px solid var(--border);flex-shrink:0;transition:all .2s}
+.sch:checked+.slb{border-color:var(--gold);color:var(--white);background:rgba(217,119,6,.08)}
+.sch:checked+.slb::before{background:var(--gold);border-color:var(--gold)}
+.tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.tbl th{text-align:left;padding:.45rem .55rem;font-size:.63rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);border-bottom:1px solid var(--border)}
+.tbl td{padding:.32rem .38rem;vertical-align:middle}
+.tbl tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+.tbl input{background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--white);font-size:.8rem;padding:.38rem .55rem;width:100%;outline:none}
+.tbl input:focus{border-color:var(--gold)}
+.tc{font-family:'DM Mono',monospace;color:var(--elec);font-size:.8rem;text-align:right;padding-right:.55rem}
+.tfoot-r{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--gold2);font-weight:600;text-align:right;padding:.55rem .55rem .15rem;border-top:1px solid var(--border)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-top:.5rem}
+.kpi{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:.9rem 1.1rem}
+.kpi.hl{border-color:var(--gold);background:rgba(217,119,6,.07)}
+.kpi.dg{border-color:var(--error);background:rgba(239,68,68,.07)}
+.kpi .kl{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.kpi .kv{font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:500;color:var(--white)}
+.kpi.hl .kv{color:var(--gold2)}
+.kpi.dg .kv{color:var(--error)}
+.acc{border:1px solid var(--border);border-radius:9px;padding:1.1rem;margin-bottom:.9rem;background:rgba(255,255,255,.015)}
+.aname{font-family:'Bebas Neue',Arial,sans-serif;letter-spacing:.1em;font-size:.95rem;color:var(--gold);margin-bottom:.9rem}
+.rlist{display:flex;flex-direction:column;gap:.45rem}
+.ritem{display:flex;align-items:center;gap:.7rem;padding:.6rem .9rem;border-radius:7px;border:1px solid var(--border);background:var(--bg);font-size:.8rem;cursor:pointer;transition:all .2s}
+.ritem input[type=checkbox]{accent-color:var(--gold);width:15px;height:15px;cursor:pointer}
+.ritem.chk{border-color:var(--success);background:rgba(16,185,129,.06);color:var(--success)}
+.rbadge{margin-left:auto;font-size:.63rem;text-transform:uppercase;letter-spacing:.09em;padding:.13rem .4rem;border-radius:4px;background:rgba(217,119,6,.15);color:var(--gold)}
+.navrow{display:flex;justify-content:space-between;align-items:center;margin-top:1.8rem;padding-top:1.4rem;border-top:1px solid var(--border)}
+.btn{font-family:'DM Sans',Arial,sans-serif;font-weight:600;font-size:.83rem;letter-spacing:.07em;text-transform:uppercase;border:none;border-radius:7px;cursor:pointer;padding:.7rem 1.6rem;transition:all .2s}
+.bg{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.bg:hover{border-color:var(--gold);color:var(--gold)}
+.bp{background:var(--gold);color:var(--black)}
+.bp:hover{background:var(--gold2);transform:translateY(-1px)}
+.bs{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--black);padding:.75rem 2.2rem;font-size:.88rem}
+.bs:hover{box-shadow:0 4px 20px rgba(217,119,6,.4);transform:translateY(-1px)}
+.ptext{font-size:.7rem;color:var(--muted);font-family:'DM Mono',monospace}
+#success{display:none;text-align:center;padding:3.5rem 2rem}
+.sico{width:76px;height:76px;border-radius:50%;background:rgba(16,185,129,.1);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1.4rem}
+#success h2{font-family:'Bebas Neue',Arial,sans-serif;font-size:2.2rem;letter-spacing:.1em;margin-bottom:.5rem}
+#success p{color:var(--muted);font-size:.88rem;max-width:460px;margin:0 auto 1.8rem;line-height:1.7}
+.sbox{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.9rem 1.4rem;max-width:400px;margin:0 auto 1.8rem;font-size:.8rem;color:var(--muted);text-align:left;line-height:1.9}
+.sbox strong{color:var(--gold)}
+@media(max-width:600px){.g2,.g3,.sgrid,.kpis{grid-template-columns:1fr}.s2,.s3{grid-column:span 1}.steps .slabel{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-bolt"></div>
+  <div class="logo-text"><span class="t1">BlackForce</span><span class="t2">Fitness Equipment</span></div>
+  <div class="header-right">www.blackforcellc.com</div>
+</header>
+
+<div id="progress">
+  <div class="steps" id="steps-row"></div>
+</div>
+
+<div id="app">
+
+<!-- PASO 1 -->
+<div class="panel active" id="p1">
+  <div class="ptitle"><span class="pnum">01</span> Datos Generales</div>
+  <p class="psub">Información básica del comercio y su ubicación.</p>
+  <div class="card">
+    <div class="ctitle">Identificación del Negocio</div>
+    <div class="g2">
+      <div class="f s2"><label>Nombre / Razón Social <span class="r">*</span></label><input type="text" id="razon_social" placeholder="Ej: Gym Pro, C.A."></div>
+      <div class="f"><label>Nombre Comercial</label><input type="text" id="nombre_comercial" placeholder="Ej: PowerGym"></div>
+      <div class="f"><label>RIF <span class="r">*</span></label><input type="text" id="rif" placeholder="J-12345678-9"></div>
+      <div class="f s2"><label>Dirección Fiscal <span class="r">*</span></label><input type="text" id="direccion" placeholder="Av. Principal, Edificio, Local..."></div>
+      <div class="f"><label>Ciudad <span class="r">*</span></label><input type="text" id="ciudad"></div>
+      <div class="f"><label>Estado <span class="r">*</span></label>
+        <select id="estado"><option value="">— Seleccionar —</option><option>Amazonas</option><option>Anzoátegui</option><option>Apure</option><option>Aragua</option><option>Barinas</option><option>Bolívar</option><option>Carabobo</option><option>Cojedes</option><option>Delta Amacuro</option><option>Distrito Capital</option><option>Falcón</option><option>Guárico</option><option>Lara</option><option>Mérida</option><option>Miranda</option><option>Monagas</option><option>Nueva Esparta</option><option>Portuguesa</option><option>Sucre</option><option>Táchira</option><option>Trujillo</option><option>Vargas / La Guaira</option><option>Yaracuy</option><option>Zulia</option></select>
+      </div>
+      <div class="f"><label>Teléfono <span class="r">*</span></label><input type="tel" id="telefono" placeholder="0412-1234567"></div>
+      <div class="f"><label>Correo <span class="r">*</span></label><input type="email" id="correo" placeholder="info@migimnasio.com"></div>
+      <div class="f"><label>Instagram / Web</label><input type="text" id="instagram" placeholder="@migimnasio"></div>
+      <div class="f"><label>Años en Operación</label><input type="number" id="anios_op" min="0" placeholder="0"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Local</div>
+    <div class="g3">
+      <div class="f"><label>Superficie (m²)</label><input type="number" id="superficie" placeholder="300"></div>
+      <div class="f"><label>Tipo de Local</label><select id="tipo_local"><option value="">—</option><option>Propio</option><option>Alquilado</option></select></div>
+      <div class="f"><label>Tiempo en Ubicación (meses)</label><input type="number" id="tiempo_local" placeholder="24"></div>
+      <div class="f"><label>Canon Arrend. (USD/mes)</label><div class="px"><span>$</span><input type="number" id="canon" placeholder="0.00"></div></div>
+      <div class="f"><label>Vencimiento Contrato</label><input type="date" id="venc_contrato"></div>
+      <div class="f"><label>Horario de Atención</label><input type="text" id="horario" placeholder="Lun-Sab 6am-10pm"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Servicios que Ofrece</div>
+    <div class="sgrid">
+      <input type="checkbox" id="s1" class="sch"><label for="s1" class="slb">Musculación / Pesas</label>
+      <input type="checkbox" id="s2" class="sch"><label for="s2" class="slb">Cardio</label>
+      <input type="checkbox" id="s3" class="sch"><label for="s3" class="slb">CrossFit / Funcional</label>
+      <input type="checkbox" id="s4" class="sch"><label for="s4" class="slb">Spinning / Cycling</label>
+      <input type="checkbox" id="s5" class="sch"><label for="s5" class="slb">Clases Grupales</label>
+      <input type="checkbox" id="s6" class="sch"><label for="s6" class="slb">Yoga / Pilates</label>
+      <input type="checkbox" id="s7" class="sch"><label for="s7" class="slb">Artes Marciales / Box</label>
+      <input type="checkbox" id="s8" class="sch"><label for="s8" class="slb">Nutrición / Suplementos</label>
+      <input type="checkbox" id="s9" class="sch"><label for="s9" class="slb">Fisioterapia / Rehab.</label>
+      <input type="checkbox" id="s10" class="sch"><label for="s10" class="slb">Spa / Sauna</label>
+      <input type="checkbox" id="s11" class="sch"><label for="s11" class="slb">Área Infantil</label>
+      <input type="checkbox" id="s12" class="sch"><label for="s12" class="slb">Tienda de Equipos</label>
+    </div>
+  </div>
+  <div class="navrow"><span class="ptext">Paso 1 de 5</span><button class="btn bp" id="n1">Continuar →</button></div>
+</div>
+
+<!-- PASO 2 -->
+<div class="panel" id="p2">
+  <div class="ptitle"><span class="pnum">02</span> Personal y Membresías</div>
+  <p class="psub">Estructura de personal, afiliados y planes de membresía.</p>
+  <div class="card">
+    <div class="ctitle">Recursos Humanos</div>
+    <table class="tbl">
+      <thead><tr><th>Tipo de Personal</th><th style="width:85px">Cantidad</th><th style="width:155px">Nómina (USD/mes)</th></tr></thead>
+      <tbody>
+        <tr><td>Empleados Fijos</td><td><input type="number" id="ef_c" min="0" placeholder="0"></td><td><div class="px"><span>$</span><input type="number" id="ef_n" placeholder="0.00"></div></td></tr>
+        <tr><td>Part-Time / Rotativos</td><td><input type="number" id="er_c" min="0" placeholder="0"></td><td><div class="px"><span>$</span><input type="number" id="er_n" placeholder="0.00"></div></td></tr>
+        <tr><td>Entrenadores / Instructores</td><td><input type="number" id="ei_c" min="0" placeholder="0"></td><td><div class="px"><span>$</span><input type="number" id="ei_n" placeholder="0.00"></div></td></tr>
+        <tr><td>Administrativos / Limpieza</td><td><input type="number" id="ea_c" min="0" placeholder="0"></td><td><div class="px"><span>$</span><input type="number" id="ea_n" placeholder="0.00"></div></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2" class="tfoot-r">Total Nómina:</td><td class="tfoot-r" id="tot_nom">$0.00</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="ctitle">Planes de Membresía</div>
+    <div class="g2" style="margin-bottom:.75rem">
+      <div class="f"><label>N° Afiliados Activos</label><input type="number" id="afiliados" placeholder="0"></div>
+      <div class="f"><label>Capacidad Máxima</label><input type="number" id="capacidad" placeholder="0"></div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Plan</th><th style="width:130px">Precio (USD)</th><th style="width:95px">N° Afiliados</th><th style="width:130px">Ingreso Mensual</th></tr></thead>
+      <tbody id="mem-body">
+        <tr><td>Plan Básico / Mensual</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+        <tr><td>Plan Trimestral</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+        <tr><td>Plan Semestral</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+        <tr><td>Plan Anual</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+        <tr><td>Plan Premium / VIP</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+        <tr><td>Entrenamiento Personal (PT)</td><td><div class="px"><span>$</span><input type="number" class="mp" placeholder="0"></div></td><td><input type="number" class="mc" placeholder="0"></td><td class="tc mt">$0.00</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3" class="tfoot-r">Total Membresías:</td><td class="tfoot-r" id="tot_mem">$0.00</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="navrow"><button class="btn bg" id="b2b">← Atrás</button><span class="ptext">Paso 2 de 5</span><button class="btn bp" id="n2">Continuar →</button></div>
+</div>
+
+<!-- PASO 3 -->
+<div class="panel" id="p3">
+  <div class="ptitle"><span class="pnum">03</span> Análisis Financiero</div>
+  <p class="psub">Ingresos totales, egresos y capacidad de pago.</p>
+  <div class="card">
+    <div class="ctitle">Ingresos Mensuales (USD)</div>
+    <table class="tbl">
+      <thead><tr><th>Fuente de Ingreso</th><th style="width:155px">Monto</th></tr></thead>
+      <tbody>
+        <tr><td>Membresías / Afiliaciones</td><td><div class="px"><span>$</span><input type="number" id="i1" placeholder="0.00"></div></td></tr>
+        <tr><td>Clases Grupales / Especiales</td><td><div class="px"><span>$</span><input type="number" id="i2" placeholder="0.00"></div></td></tr>
+        <tr><td>Venta Suplementos / Nutrición</td><td><div class="px"><span>$</span><input type="number" id="i3" placeholder="0.00"></div></td></tr>
+        <tr><td>Venta / Alquiler de Equipos</td><td><div class="px"><span>$</span><input type="number" id="i4" placeholder="0.00"></div></td></tr>
+        <tr><td>Publicidad / Patrocinios</td><td><div class="px"><span>$</span><input type="number" id="i5" placeholder="0.00"></div></td></tr>
+        <tr><td>Otros Ingresos</td><td><div class="px"><span>$</span><input type="number" id="i6" placeholder="0.00"></div></td></tr>
+      </tbody>
+      <tfoot><tr><td class="tfoot-r">Total Ingresos:</td><td class="tfoot-r" id="tot_ing">$0.00</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="ctitle">Egresos Mensuales (USD)</div>
+    <table class="tbl">
+      <thead><tr><th>Concepto</th><th style="width:155px">Monto</th></tr></thead>
+      <tbody>
+        <tr><td>Nómina Total</td><td><div class="px"><span>$</span><input type="number" id="e1" placeholder="0.00"></div></td></tr>
+        <tr><td>Alquiler del Local</td><td><div class="px"><span>$</span><input type="number" id="e2" placeholder="0.00"></div></td></tr>
+        <tr><td>Servicios Públicos</td><td><div class="px"><span>$</span><input type="number" id="e3" placeholder="0.00"></div></td></tr>
+        <tr><td>Mantenimiento de Equipos</td><td><div class="px"><span>$</span><input type="number" id="e4" placeholder="0.00"></div></td></tr>
+        <tr><td>Publicidad y Marketing</td><td><div class="px"><span>$</span><input type="number" id="e5" placeholder="0.00"></div></td></tr>
+        <tr><td>Otros Créditos Vigentes</td><td><div class="px"><span>$</span><input type="number" id="e6" placeholder="0.00"></div></td></tr>
+        <tr><td>Gastos Administrativos</td><td><div class="px"><span>$</span><input type="number" id="e7" placeholder="0.00"></div></td></tr>
+      </tbody>
+      <tfoot><tr><td class="tfoot-r">Total Egresos:</td><td class="tfoot-r" id="tot_egr">$0.00</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="ctitle">Resumen Financiero</div>
+    <div class="kpis">
+      <div class="kpi hl"><div class="kl">Ingreso Total</div><div class="kv" id="kv_ing">$0.00</div></div>
+      <div class="kpi dg"><div class="kl">Egreso Total</div><div class="kv" id="kv_egr">$0.00</div></div>
+      <div class="kpi" id="kv_util_box"><div class="kl">Utilidad Operativa</div><div class="kv" id="kv_util">$0.00</div></div>
+      <div class="kpi" id="kv_marg_box"><div class="kl">Margen Operativo</div><div class="kv" id="kv_marg">0.0%</div></div>
+      <div class="kpi"><div class="kl">Cuota Máx. (30%)</div><div class="kv" id="kv_cuota">$0.00</div></div>
+      <div class="kpi" id="kv_rat_box"><div class="kl">Ratio Endeudamiento</div><div class="kv" id="kv_rat">—</div></div>
+    </div>
+  </div>
+  <div class="navrow"><button class="btn bg" id="b3b">← Atrás</button><span class="ptext">Paso 3 de 5</span><button class="btn bp" id="n3">Continuar →</button></div>
+</div>
+
+<!-- PASO 4 -->
+<div class="panel" id="p4">
+  <div class="ptitle"><span class="pnum">04</span> Solicitud y Equipos</div>
+  <p class="psub">Detalle del financiamiento solicitado y equipos requeridos.</p>
+  <div class="card">
+    <div class="ctitle">Detalle del Financiamiento</div>
+    <div class="g3">
+      <div class="f"><label>Monto Solicitado (USD) <span class="r">*</span></label><div class="px"><span>$</span><input type="number" id="monto_sol" placeholder="0.00"></div></div>
+      <div class="f"><label>Plazo (meses) <span class="r">*</span></label><select id="plazo"><option value="">—</option><option>6</option><option>12</option><option>18</option><option>24</option><option>36</option><option>48</option></select></div>
+      <div class="f"><label>Cuota Mensual Máxima (USD)</label><div class="px"><span>$</span><input type="number" id="cuota_max" placeholder="0.00"></div></div>
+      <div class="f s3"><label>Destino del Financiamiento <span class="r">*</span></label><input type="text" id="destino" placeholder="Ej: Adquisición de equipos de musculación..."></div>
+      <div class="f"><label>¿Otros créditos vigentes?</label><select id="otros_cred"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+      <div class="f"><label>Cuota Otros Créditos (USD)</label><div class="px"><span>$</span><input type="number" id="cuota_otros" placeholder="0.00"></div></div>
+      <div class="f"><label>Banco Principal</label><input type="text" id="banco" placeholder="Ej: Bancamiga, Banesco..."></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Equipos Solicitados a BlackForce</div>
+    <table class="tbl">
+      <thead><tr><th>Equipo / Producto</th><th style="width:75px">Cant.</th><th style="width:140px">Precio Ref. (USD)</th><th style="width:120px">Total</th></tr></thead>
+      <tbody id="eq-body">
+        <tr><td><input type="text" class="en" placeholder="Ej: Rack de sentadillas"></td><td><input type="number" class="ec" min="0" placeholder="0"></td><td><div class="px"><span>$</span><input type="number" class="ep" placeholder="0.00"></div></td><td class="tc et">$0.00</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3" class="tfoot-r">Total Equipos:</td><td class="tfoot-r" id="tot_eq">$0.00</td></tr></tfoot>
+    </table>
+    <button class="btn bg" id="add-eq" style="margin-top:.7rem;font-size:.76rem;padding:.45rem .9rem">+ Agregar Equipo</button>
+  </div>
+  <div class="navrow"><button class="btn bg" id="b4b">← Atrás</button><span class="ptext">Paso 4 de 5</span><button class="btn bp" id="n4">Continuar →</button></div>
+</div>
+
+<!-- PASO 5 -->
+<div class="panel" id="p5">
+  <div class="ptitle"><span class="pnum">05</span> Accionistas y Documentos</div>
+  <p class="psub">Datos de los propietarios y lista de recaudos requeridos.</p>
+  <div class="card">
+    <div class="ctitle">Accionistas / Propietarios</div>
+    <div class="acc">
+      <div class="aname">⚡ Accionista #1</div>
+      <div class="g3">
+        <div class="f s2"><label>Nombres y Apellidos <span class="r">*</span></label><input type="text" id="a1n"></div>
+        <div class="f"><label>C.I.</label><input type="text" id="a1ci" placeholder="V-12.345.678"></div>
+        <div class="f"><label>RIF</label><input type="text" id="a1rif"></div>
+        <div class="f"><label>% Participación</label><input type="number" id="a1pct" min="0" max="100" placeholder="100"></div>
+        <div class="f"><label>Cargo</label><input type="text" id="a1cargo" placeholder="Director / Presidente"></div>
+        <div class="f s2"><label>Dirección de Residencia</label><input type="text" id="a1dir"></div>
+        <div class="f"><label>Estado Civil</label><select id="a1ec"><option value="">—</option><option>Soltero/a</option><option>Casado/a</option><option>Divorciado/a</option><option>Viudo/a</option><option>Unión Estable</option></select></div>
+        <div class="f"><label>Teléfono</label><input type="tel" id="a1tlf"></div>
+        <div class="f s2"><label>Correo</label><input type="email" id="a1email"></div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="aname">⚡ Accionista #2 <span style="font-size:.73rem;color:var(--muted)">(si aplica)</span></div>
+      <div class="g3">
+        <div class="f s2"><label>Nombres y Apellidos</label><input type="text" id="a2n"></div>
+        <div class="f"><label>C.I.</label><input type="text" id="a2ci"></div>
+        <div class="f"><label>% Participación</label><input type="number" id="a2pct" min="0" max="100" placeholder="0"></div>
+        <div class="f"><label>Cargo</label><input type="text" id="a2cargo"></div>
+        <div class="f"><label>Teléfono</label><input type="tel" id="a2tlf"></div>
+        <div class="f s2"><label>Correo</label><input type="email" id="a2email"></div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="aname">⚡ Accionista #3 <span style="font-size:.73rem;color:var(--muted)">(si aplica)</span></div>
+      <div class="g3">
+        <div class="f s2"><label>Nombres y Apellidos</label><input type="text" id="a3n"></div>
+        <div class="f"><label>C.I.</label><input type="text" id="a3ci"></div>
+        <div class="f"><label>% Participación</label><input type="number" id="a3pct" min="0" max="100" placeholder="0"></div>
+        <div class="f"><label>Cargo</label><input type="text" id="a3cargo"></div>
+        <div class="f"><label>Teléfono</label><input type="tel" id="a3tlf"></div>
+        <div class="f s2"><label>Correo</label><input type="email" id="a3email"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Lista de Recaudos</div>
+    <p style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem">Marque los documentos disponibles para entregar junto a la solicitud.</p>
+    <div class="rlist" id="rec-list"></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Declaración</div>
+    <p style="font-size:.8rem;color:#9CA3AF;line-height:1.7;margin-bottom:1rem">Declaro que la información suministrada es verídica y exacta. Autorizo a <strong style="color:var(--gold)">BLACKFORCE FITNESS EQUIPMENT</strong> a verificar los datos proporcionados con las instituciones financieras pertinentes. La falsedad en la información es causal de rechazo conforme a la legislación venezolana vigente.</p>
+    <div class="g2">
+      <div class="f"><label>Lugar y Fecha <span class="r">*</span></label><input type="date" id="fecha_firma"></div>
+      <div class="f"><label>Nombre del Firmante <span class="r">*</span></label><input type="text" id="nombre_firma" placeholder="Representante legal"></div>
+    </div>
+  </div>
+  <div class="navrow">
+    <button class="btn bg" id="b5b">← Atrás</button>
+    <span class="ptext">Paso 5 de 5</span>
+    <button class="btn bs" id="btn-pdf">⬇ Descargar PDF</button>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="success">
+  <div class="sico">✓</div>
+  <h2>¡PDF Generado!</h2>
+  <p>La solicitud fue exportada exitosamente. Envía el PDF descargado a <strong style="color:var(--gold)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="55373934363e333a273630393936153238343c397b363a38">[email&#160;protected]</a></strong> junto con los recaudos.</p>
+  <div class="sbox">
+    <strong>📧 Correo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="accec0cdcfc7cac3decfc9c0c0cfeccbc1cdc5c082cfc3c1">[email&#160;protected]</a><br>
+    <strong>🌐 Web:</strong> www.blackforcellc.com<br>
+    <strong>📎 Próximo paso:</strong> Adjunta el PDF y tus recaudos al correo.
+  </div>
+  <button class="btn bp" id="btn-reset" style="margin:0 auto;display:block">Nueva Solicitud</button>
+</div>
+
+</div><!-- /app -->
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ═══════════════════════════════════════════════
+//  TODAS LAS FUNCIONES EN SCOPE GLOBAL
+// ═══════════════════════════════════════════════
+
+var STEPS = ['Datos','Personal','Financiero','Solicitud','Accionistas'];
+var currentStep = 1;
+
+var RECAUDOS_EMP = [
+  'Registro Mercantil (Acta Constitutiva)',
+  'Acta de Asamblea con Junta Directiva vigente',
+  'RIF de la Empresa (vigente)',
+  'Últimos 3 estados de cuenta bancarios (empresa)',
+  'Declaración de IVA (últimos 3 meses)',
+  'Declaración de ISLR (último año fiscal)',
+  'Contrato de Arrendamiento del local (si aplica)',
+  'Referencias Bancarias (mínimo 2)',
+  'Referencias Comerciales (mínimo 2)'
+];
+var RECAUDOS_ACC = [
+  'Cédula de Identidad (todos los accionistas)',
+  'RIF personal (todos los accionistas)',
+  'Comprobante de Domicilio (no mayor a 3 meses)',
+  'Estado de Cuenta Personal (últimos 3 meses)'
+];
+
+function fmt(n) {
+  var v = isNaN(n) ? 0 : n;
+  return '$' + v.toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function gv(id) {
+  var el = document.getElementById(id);
+  return el ? (el.value || '').trim() : '';
+}
+
+function goTo(step) {
+  for (var i = 1; i <= 5; i++) {
+    var p = document.getElementById('p' + i);
+    if (p) p.className = 'panel' + (i === step ? ' active' : '');
+  }
+  currentStep = step;
+  buildProgress();
+  window.scrollTo(0, 0);
+}
+
+function buildProgress() {
+  var row = document.getElementById('steps-row');
+  if (!row) return;
+  var html = '';
+  for (var i = 0; i < STEPS.length; i++) {
+    var n = i + 1;
+    var cls = 'step' + (n < currentStep ? ' done' : '') + (n === currentStep ? ' active' : '');
+    var dot = n < currentStep ? '✓' : n;
+    html += '<div class="' + cls + '" onclick="goTo(' + n + ')">' +
+            '<div class="dot">' + dot + '</div>' +
+            '<div class="slabel">' + STEPS[i] + '</div>' +
+            '</div>';
+  }
+  row.innerHTML = html;
+}
+
+function buildRecaudos() {
+  var list = document.getElementById('rec-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  function addGroup(title, items) {
+    var h = document.createElement('div');
+    h.style.cssText = 'font-size:.63rem;text-transform:uppercase;letter-spacing:.15em;color:var(--gold);padding:.45rem 0 .2rem;font-weight:600';
+    h.textContent = title;
+    list.appendChild(h);
+    items.forEach(function(item, i) {
+      var id = 'rc_' + title[0] + i;
+      var div = document.createElement('div');
+      div.className = 'ritem';
+      div.innerHTML = '<input type="checkbox" id="' + id + '"><label for="' + id + '" style="cursor:pointer;flex:1">' + item + '</label><span class="rbadge">Requerido</span>';
+      var cb = div.querySelector('input');
+      cb.addEventListener('change', function() {
+        div.classList.toggle('chk', cb.checked);
+        var b = div.querySelector('.rbadge');
+        b.textContent = cb.checked ? '✓ Disponible' : 'Requerido';
+        b.style.color = cb.checked ? 'var(--success)' : '';
+        b.style.background = cb.checked ? 'rgba(16,185,129,.15)' : '';
+      });
+      list.appendChild(div);
+    });
+  }
+  addGroup('Documentos de la Empresa', RECAUDOS_EMP);
+  addGroup('Documentos de Accionistas', RECAUDOS_ACC);
+}
+
+function calcNomina() {
+  var t = ['ef_n','er_n','ei_n','ea_n'].reduce(function(s, id) {
+    return s + (parseFloat(gv(id)) || 0);
+  }, 0);
+  var el = document.getElementById('tot_nom');
+  if (el) el.textContent = fmt(t);
+}
+
+function calcMem() {
+  var t = 0;
+  document.querySelectorAll('#mem-body tr').forEach(function(row) {
+    var p = parseFloat(row.querySelector('.mp') && row.querySelector('.mp').value) || 0;
+    var c = parseFloat(row.querySelector('.mc') && row.querySelector('.mc').value) || 0;
+    var s = p * c;
+    var mt = row.querySelector('.mt');
+    if (mt) mt.textContent = fmt(s);
+    t += s;
+  });
+  var el = document.getElementById('tot_mem');
+  if (el) el.textContent = fmt(t);
+}
+
+function calcFin() {
+  var ing = ['i1','i2','i3','i4','i5','i6'].reduce(function(s, id) { return s + (parseFloat(gv(id)) || 0); }, 0);
+  var egr = ['e1','e2','e3','e4','e5','e6','e7'].reduce(function(s, id) { return s + (parseFloat(gv(id)) || 0); }, 0);
+  var util = ing - egr;
+  var marg = ing > 0 ? (util / ing * 100) : 0;
+  var cuota = util > 0 ? util * 0.30 : 0;
+  var rat = ing > 0 ? (egr / ing * 100) : 0;
+
+  function set(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+  set('tot_ing', fmt(ing)); set('tot_egr', fmt(egr));
+  set('kv_ing', fmt(ing)); set('kv_egr', fmt(egr));
+  set('kv_util', fmt(util)); set('kv_marg', marg.toFixed(1) + '%');
+  set('kv_cuota', fmt(cuota)); set('kv_rat', rat.toFixed(1) + '%');
+
+  var ub = document.getElementById('kv_util_box');
+  if (ub) ub.className = 'kpi ' + (util >= 0 ? 'hl' : 'dg');
+  var mb = document.getElementById('kv_marg_box');
+  if (mb) mb.className = 'kpi ' + (marg >= 20 ? 'hl' : marg > 0 ? '' : 'dg');
+  var rb = document.getElementById('kv_rat_box');
+  if (rb) rb.className = 'kpi ' + (rat <= 70 ? 'hl' : 'dg');
+}
+
+function calcEquip() {
+  var t = 0;
+  document.querySelectorAll('#eq-body tr').forEach(function(row) {
+    var c = parseFloat(row.querySelector('.ec') && row.querySelector('.ec').value) || 0;
+    var p = parseFloat(row.querySelector('.ep') && row.querySelector('.ep').value) || 0;
+    var s = c * p;
+    var et = row.querySelector('.et');
+    if (et) et.textContent = fmt(s);
+    t += s;
+  });
+  var el = document.getElementById('tot_eq');
+  if (el) el.textContent = fmt(t);
+}
+
+function addEquipRow() {
+  var tbody = document.getElementById('eq-body');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" class="en" placeholder="Ej: Mancuernas"></td>' +
+    '<td><input type="number" class="ec" min="0" placeholder="0"></td>' +
+    '<td><div class="px"><span>$</span><input type="number" class="ep" placeholder="0.00"></div></td>' +
+    '<td class="tc et">$0.00</td>';
+  tbody.appendChild(tr);
+  tr.querySelectorAll('.ec,.ep').forEach(function(el) { el.addEventListener('input', calcEquip); });
+}
+
+function generarPDF() {
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({orientation:'p', unit:'mm', format:'a4'});
+  var W = 210, M = 14, y = 0;
+
+  function newPage() { doc.addPage(); doc.setFillColor(10,10,10); doc.rect(0,0,W,300,'F'); y=0; drawHdr(); }
+  function chk(n) { if (y + (n||10) > 275) newPage(); }
+
+  function drawHdr() {
+    doc.setFillColor(217,119,6); doc.rect(0,0,W,22,'F');
+    doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(10,10,10);
+    doc.text('BLACKFORCE FITNESS EQUIPMENT', M, 9);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text('SOLICITUD DE FINANCIAMIENTO  |  www.blackforcellc.com', M, 15);
+    doc.text('Fecha: ' + new Date().toLocaleDateString('es-VE'), W-M, 15, {align:'right'});
+    y = 28;
+  }
+
+  function secTit(t) {
+    chk(14);
+    doc.setFillColor(31,41,55); doc.rect(M,y,W-M*2,7,'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(217,119,6);
+    doc.text(t.toUpperCase(), M+3, y+5); y += 10;
+  }
+
+  function r2(l,v,l2,v2) {
+    chk(7); var cw=(W-M*2)/2;
+    doc.setFillColor(26,26,26); doc.rect(M,y,cw-1,6,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(107,114,128);
+    doc.text(l, M+2, y+4.2);
+    doc.setFont('helvetica','normal'); doc.setTextColor(249,250,251);
+    doc.text(String(v||'—'), M+40, y+4.2);
+    if (l2) {
+      doc.setFillColor(26,26,26); doc.rect(M+cw,y,cw,6,'F');
+      doc.setFont('helvetica','bold'); doc.setTextColor(107,114,128); doc.text(l2, M+cw+2, y+4.2);
+      doc.setFont('helvetica','normal'); doc.setTextColor(249,250,251); doc.text(String(v2||'—'), M+cw+40, y+4.2);
+    }
+    y += 7;
+  }
+
+  function fr(l,v) {
+    chk(7); doc.setFillColor(26,26,26); doc.rect(M,y,W-M*2,6,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(107,114,128); doc.text(l, M+2, y+4.2);
+    doc.setFont('helvetica','normal'); doc.setTextColor(249,250,251); doc.text(String(v||'—'), M+55, y+4.2); y += 7;
+  }
+
+  function tblHdr(cols) {
+    chk(8); var cw=(W-M*2)/cols.length;
+    doc.setFillColor(217,119,6); doc.rect(M,y,W-M*2,6,'F');
+    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(10,10,10);
+    cols.forEach(function(c,i) { doc.text(c, M+cw*i+2, y+4.2); }); y += 7;
+  }
+
+  function tblRow(vals,cws,alt) {
+    chk(6); doc.setFillColor(alt?30:22,alt?30:22,alt?30:22); doc.rect(M,y,W-M*2,5.5,'F');
+    doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(249,250,251);
+    var x = M;
+    vals.forEach(function(v,i) { doc.text(String(v||'—'), x+2, y+3.8); x += cws[i]; }); y += 6;
+  }
+
+  function totRow(label, val) {
+    chk(6); doc.setFillColor(217,119,6); doc.rect(M,y,W-M*2,5.5,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(10,10,10);
+    doc.text(label, M+2, y+3.8); doc.text(val, M+(W-M*2)-2, y+3.8, {align:'right'}); y += 8;
+  }
+
+  // Collect data
+  var svcs = [];
+  for (var si=1; si<=12; si++) { var sc=document.getElementById('s'+si); if (sc&&sc.checked) { var lb=document.querySelector('label[for="s'+si+'"]'); if(lb) svcs.push(lb.textContent); } }
+  var ING = ['i1','i2','i3','i4','i5','i6'].reduce(function(s,id){return s+(parseFloat(gv(id))||0);},0);
+  var EGR = ['e1','e2','e3','e4','e5','e6','e7'].reduce(function(s,id){return s+(parseFloat(gv(id))||0);},0);
+  var UTIL = ING-EGR, MARG = ING>0?(UTIL/ING*100).toFixed(1):'0.0';
+  var nomTot = ['ef_n','er_n','ei_n','ea_n'].reduce(function(s,id){return s+(parseFloat(gv(id))||0);},0);
+  var memTot = 0;
+  document.querySelectorAll('#mem-body tr').forEach(function(r){ memTot+=(parseFloat(r.querySelector('.mp')&&r.querySelector('.mp').value)||0)*(parseFloat(r.querySelector('.mc')&&r.querySelector('.mc').value)||0); });
+  var eqTot = 0;
+  document.querySelectorAll('#eq-body tr').forEach(function(r){ eqTot+=(parseFloat(r.querySelector('.ec')&&r.querySelector('.ec').value)||0)*(parseFloat(r.querySelector('.ep')&&r.querySelector('.ep').value)||0); });
+  var recItems = [];
+  document.querySelectorAll('#rec-list .ritem').forEach(function(item){ recItems.push({label:(item.querySelector('label')||{textContent:''}).textContent, checked:item.querySelector('input')&&item.querySelector('input').checked}); });
+
+  // Build PDF
+  doc.setFillColor(10,10,10); doc.rect(0,0,W,300,'F'); drawHdr();
+
+  secTit('1. Datos Generales del Comercio');
+  r2('Razón Social:', gv('razon_social'), 'RIF:', gv('rif'));
+  r2('Nombre Comercial:', gv('nombre_comercial'), 'Teléfono:', gv('telefono'));
+  fr('Dirección Fiscal:', gv('direccion'));
+  r2('Ciudad:', gv('ciudad'), 'Estado:', gv('estado'));
+  r2('Correo:', gv('correo'), 'Instagram/Web:', gv('instagram'));
+  r2('Tipo Local:', gv('tipo_local'), 'Superficie (m²):', gv('superficie'));
+  r2('Horario:', gv('horario'), 'Años en Operación:', gv('anios_op'));
+  if (svcs.length) fr('Servicios:', svcs.join(', '));
+  y += 4;
+
+  secTit('2. Recursos Humanos y Membresías');
+  tblHdr(['Tipo de Personal','Cantidad','Nómina (USD/mes)']); var cw3=(W-M*2)/3;
+  [['Empleados Fijos',gv('ef_c'),gv('ef_n')?'$'+gv('ef_n'):'—'],
+   ['Part-Time / Rotativos',gv('er_c'),gv('er_n')?'$'+gv('er_n'):'—'],
+   ['Entrenadores / Instructores',gv('ei_c'),gv('ei_n')?'$'+gv('ei_n'):'—'],
+   ['Administrativos / Limpieza',gv('ea_c'),gv('ea_n')?'$'+gv('ea_n'):'—']
+  ].forEach(function(r,i){tblRow(r,[cw3,cw3,cw3],i%2===0);});
+  totRow('TOTAL NÓMINA:', fmt(nomTot));
+  r2('N° Afiliados:', gv('afiliados'), 'Capacidad Máxima:', gv('capacidad')); y += 2;
+  tblHdr(['Plan','Precio (USD)','N° Afiliados','Ingreso Mensual']); var cw4=(W-M*2)/4;
+  document.querySelectorAll('#mem-body tr').forEach(function(row,i){
+    var plan=row.cells[0]?row.cells[0].textContent:'';
+    var precio=row.querySelector('.mp')?row.querySelector('.mp').value||'0':'0';
+    var cant=row.querySelector('.mc')?row.querySelector('.mc').value||'0':'0';
+    var sub=(parseFloat(precio)||0)*(parseFloat(cant)||0);
+    if(sub>0) tblRow([plan,'$'+precio,cant,fmt(sub)],[cw4,cw4,cw4,cw4],i%2===0);
+  });
+  totRow('TOTAL MEMBRESÍAS:', fmt(memTot));
+
+  secTit('3. Análisis Financiero');
+  tblHdr(['Fuente de Ingreso','Monto (USD/mes)']); var h2=[(W-M*2)*0.7,(W-M*2)*0.3];
+  [['Membresías',gv('i1')?fmt(parseFloat(gv('i1'))):'—'],
+   ['Clases Grupales',gv('i2')?fmt(parseFloat(gv('i2'))):'—'],
+   ['Suplementos',gv('i3')?fmt(parseFloat(gv('i3'))):'—'],
+   ['Equipos',gv('i4')?fmt(parseFloat(gv('i4'))):'—'],
+   ['Publicidad',gv('i5')?fmt(parseFloat(gv('i5'))):'—'],
+   ['Otros',gv('i6')?fmt(parseFloat(gv('i6'))):'—']
+  ].forEach(function(r,i){tblRow(r,h2,i%2===0);});
+  doc.setFillColor(16,62,16);doc.rect(M,y,W-M*2,5.5,'F');doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(74,222,128);doc.text('TOTAL INGRESOS:',M+2,y+3.8);doc.text(fmt(ING),M+(W-M*2)-2,y+3.8,{align:'right'});y+=8;
+  tblHdr(['Concepto de Egreso','Monto (USD/mes)']);
+  [['Nómina',gv('e1')?fmt(parseFloat(gv('e1'))):'—'],
+   ['Alquiler',gv('e2')?fmt(parseFloat(gv('e2'))):'—'],
+   ['Servicios Públicos',gv('e3')?fmt(parseFloat(gv('e3'))):'—'],
+   ['Mantenimiento',gv('e4')?fmt(parseFloat(gv('e4'))):'—'],
+   ['Marketing',gv('e5')?fmt(parseFloat(gv('e5'))):'—'],
+   ['Otros Créditos',gv('e6')?fmt(parseFloat(gv('e6'))):'—'],
+   ['Gastos Admin.',gv('e7')?fmt(parseFloat(gv('e7'))):'—']
+  ].forEach(function(r,i){tblRow(r,h2,i%2===0);});
+  doc.setFillColor(62,16,16);doc.rect(M,y,W-M*2,5.5,'F');doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(248,113,113);doc.text('TOTAL EGRESOS:',M+2,y+3.8);doc.text(fmt(EGR),M+(W-M*2)-2,y+3.8,{align:'right'});y+=10;
+  var kw=(W-M*2-6)/4;
+  function kpiBox(lbl,val,x,w,col){doc.setFillColor(22,22,22);doc.rect(x,y,w,14,'F');doc.setDrawColor(col[0],col[1],col[2]);doc.setLineWidth(0.5);doc.rect(x,y,w,14,'S');doc.setFontSize(5.5);doc.setFont('helvetica','bold');doc.setTextColor(107,114,128);doc.text(lbl.toUpperCase(),x+2,y+4);doc.setFontSize(9);doc.setTextColor(col[0],col[1],col[2]);doc.text(String(val),x+2,y+11);}
+  kpiBox('Utilidad',fmt(UTIL),M,kw,UTIL>=0?[217,119,6]:[239,68,68]);
+  kpiBox('Margen',MARG+'%',M+kw+2,kw,parseFloat(MARG)>=20?[34,197,94]:[239,68,68]);
+  kpiBox('Cuota Máx.30%',fmt(UTIL>0?UTIL*0.3:0),M+(kw+2)*2,kw,[217,119,6]);
+  kpiBox('Ing.Total',fmt(ING),M+(kw+2)*3,kw,[217,119,6]);
+  y += 18;
+
+  secTit('4. Solicitud de Financiamiento');
+  r2('Monto Solicitado:', gv('monto_sol')?'$'+gv('monto_sol'):'—', 'Plazo (meses):', gv('plazo'));
+  r2('Cuota Máxima:', gv('cuota_max')?'$'+gv('cuota_max'):'—', 'Banco Principal:', gv('banco'));
+  r2('Otros Créditos:', gv('otros_cred'), 'Cuota Otros:', gv('cuota_otros')?'$'+gv('cuota_otros'):'—');
+  fr('Destino:', gv('destino')); y += 4;
+  var eqRows = document.querySelectorAll('#eq-body tr');
+  if (eqRows.length) {
+    tblHdr(['Equipo / Producto','Cantidad','Precio Ref.','Total']);
+    eqRows.forEach(function(row,i){
+      var n=row.querySelector('.en')?row.querySelector('.en').value||'':'';
+      var c=row.querySelector('.ec')?row.querySelector('.ec').value||'0':'0';
+      var p=row.querySelector('.ep')?row.querySelector('.ep').value||'0':'0';
+      var s=(parseFloat(c)||0)*(parseFloat(p)||0);
+      if(n||s>0) tblRow([n,c,'$'+p,fmt(s)],[(W-M*2)*0.4,(W-M*2)*0.15,(W-M*2)*0.22,(W-M*2)*0.23],i%2===0);
+    });
+    totRow('TOTAL EQUIPOS:', fmt(eqTot));
+  }
+
+  secTit('5. Accionistas / Propietarios');
+  for (var a=1; a<=3; a++) {
+    var an = gv('a'+a+'n');
+    if (!an) continue;
+    chk(24); doc.setFillColor(22,22,22); doc.rect(M,y,W-M*2,5,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(217,119,6);
+    doc.text('ACCIONISTA #'+a, M+2, y+3.5); y += 6;
+    r2('Nombre:', an, 'C.I.:', gv('a'+a+'ci'));
+    r2('Cargo:', gv('a'+a+'cargo'), '% Participación:', gv('a'+a+'pct')?gv('a'+a+'pct')+'%':'—');
+    r2('Teléfono:', gv('a'+a+'tlf'), 'Correo:', gv('a'+a+'email'));
+    y += 2;
+  }
+
+  secTit('6. Lista de Recaudos');
+  var disp = recItems.filter(function(r){return r.checked;});
+  var pend = recItems.filter(function(r){return !r.checked;});
+  chk(10);
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(74,222,128);
+  doc.text('✓ Disponibles ('+disp.length+'):', M, y); y += 5;
+  doc.setFont('helvetica','normal'); doc.setTextColor(249,250,251);
+  disp.forEach(function(r){chk(5);doc.text('  • '+r.label,M,y);y+=4.5;});
+  y += 3;
+  if (pend.length) {
+    doc.setFont('helvetica','bold'); doc.setTextColor(248,113,113);
+    doc.text('✗ Pendientes ('+pend.length+'):', M, y); y += 5;
+    doc.setFont('helvetica','normal'); doc.setTextColor(252,165,165);
+    pend.forEach(function(r){chk(5);doc.text('  • '+r.label,M,y);y+=4.5;});
+  }
+  y += 6;
+
+  secTit('7. Declaración y Firma');
+  chk(30);
+  doc.setFontSize(6.5); doc.setFont('helvetica','italic'); doc.setTextColor(107,114,128);
+  var dl = 'Declaro que la información suministrada es verídica y exacta. Autorizo a BLACKFORCE FITNESS EQUIPMENT (www.blackforcellc.com) a verificar los datos proporcionados con las instituciones financieras pertinentes. La falsedad en la información es causal de rechazo conforme a la legislación venezolana vigente.';
+  var lns = doc.splitTextToSize(dl, W-M*2);
+  doc.text(lns, M, y); y += lns.length*4+8;
+  r2('Lugar y Fecha:', gv('fecha_firma'), 'Firmante:', gv('nombre_firma'));
+  y += 12; chk(16);
+  doc.setDrawColor(217,119,6); doc.setLineWidth(0.4);
+  var sw = (W-M*2)*0.45;
+  doc.line(M,y,M+sw,y); doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.setTextColor(107,114,128);
+  doc.text('Firma del Representante Legal', M, y+4);
+  doc.line(M+sw+10,y,W-M,y); doc.text('Sello de la Empresa', M+sw+10, y+4);
+
+  // Footer
+  var pc = doc.internal.getNumberOfPages();
+  for (var pi=1; pi<=pc; pi++) {
+    doc.setPage(pi);
+    doc.setFillColor(10,10,10); doc.rect(0,285,W,12,'F');
+    doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.setTextColor(107,114,128);
+    doc.text('BLACKFORCE FITNESS EQUIPMENT  |  www.blackforcellc.com', M, 291);
+    doc.text('Página '+pi+' de '+pc, W-M, 291, {align:'right'});
+    doc.setDrawColor(217,119,6); doc.setLineWidth(0.3); doc.line(M,285.5,W-M,285.5);
+  }
+
+  var nombre = gv('razon_social') || 'solicitud';
+  doc.save('BlackForce_Solicitud_' + nombre.replace(/\s+/g,'_') + '.pdf');
+
+  // Show success
+  for (var i=1; i<=5; i++) { var p=document.getElementById('p'+i); if(p) p.className='panel'; }
+  document.getElementById('progress').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function resetForm() {
+  document.querySelectorAll('input:not([type=checkbox]),select,textarea').forEach(function(el){el.value='';});
+  document.querySelectorAll('input[type=checkbox]').forEach(function(el){el.checked=false;});
+  document.querySelectorAll('.ritem').forEach(function(d){
+    d.classList.remove('chk');
+    var b=d.querySelector('.rbadge');
+    if(b){b.textContent='Requerido';b.style.color='';b.style.background='';}
+  });
+  document.getElementById('progress').style.display = '';
+  document.getElementById('success').style.display = 'none';
+  goTo(1);
+}
+
+// ═══════════════════════════════════════════════
+//  BIND EVENTOS — al final del body, sin esperar
+// ═══════════════════════════════════════════════
+document.getElementById('n1').addEventListener('click', function(){ goTo(2); });
+document.getElementById('n2').addEventListener('click', function(){ goTo(3); });
+document.getElementById('b2b').addEventListener('click', function(){ goTo(1); });
+document.getElementById('n3').addEventListener('click', function(){ goTo(4); });
+document.getElementById('b3b').addEventListener('click', function(){ goTo(2); });
+document.getElementById('n4').addEventListener('click', function(){ goTo(5); });
+document.getElementById('b4b').addEventListener('click', function(){ goTo(3); });
+document.getElementById('b5b').addEventListener('click', function(){ goTo(4); });
+document.getElementById('btn-pdf').addEventListener('click', generarPDF);
+document.getElementById('btn-reset').addEventListener('click', resetForm);
+document.getElementById('add-eq').addEventListener('click', addEquipRow);
+
+document.querySelectorAll('#mem-body .mp,.mp').forEach(function(el){el.addEventListener('input',calcMem);});
+document.querySelectorAll('#mem-body .mc,.mc').forEach(function(el){el.addEventListener('input',calcMem);});
+['ef_n','er_n','ei_n','ea_n'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',calcNomina);});
+['i1','i2','i3','i4','i5','i6','e1','e2','e3','e4','e5','e6','e7'].forEach(function(id){
